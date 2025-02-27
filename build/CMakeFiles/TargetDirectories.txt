@@ -1,3 +1,0 @@
-/home/bbp/dsa/traffic-signal/build/CMakeFiles/traffic-signal.dir
-/home/bbp/dsa/traffic-signal/build/CMakeFiles/edit_cache.dir
-/home/bbp/dsa/traffic-signal/build/CMakeFiles/rebuild_cache.dir

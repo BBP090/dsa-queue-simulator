@@ -1,1 +1,0 @@
-/usr/bin/cc -Wl,--dependency-file=CMakeFiles/traffic-signal.dir/link.d "CMakeFiles/traffic-signal.dir/simulator.c.o" "CMakeFiles/traffic-signal.dir/trafficGenerator.c.o" -o traffic-signal  /usr/lib/x86_64-linux-gnu/libSDL2main.a /usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0.3000.9 /usr/lib/x86_64-linux-gnu/libSDL2_ttf.so

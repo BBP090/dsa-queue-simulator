@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -50,3 +51,6 @@ int main() {
     fclose(file);
     return 0;
 }
+
+// traffic_generator.c
+// Displaying traffic_generator.c.

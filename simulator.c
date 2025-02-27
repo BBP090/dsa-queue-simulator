@@ -1,4 +1,3 @@
-
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <stdbool.h>
@@ -39,7 +38,7 @@ void printMessageHelper(const char* message, int count) {
     for (int i = 0; i < count; i++) printf("%s\n", message);
 }
 
-int main1() {
+int main() {
     pthread_t tQueue, tReadFile;
     SDL_Window* window = NULL;
     SDL_Renderer* renderer = NULL;    
@@ -280,3 +279,6 @@ void* readAndParseFile(void* arg) {
         sleep(2); // manage this time
     }
 }
+
+// simulator.c
+// Displaying simulator.c.

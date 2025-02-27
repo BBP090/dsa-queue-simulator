@@ -94,7 +94,8 @@ bool initializeSDL(SDL_Window **window, SDL_Renderer **renderer) {
         return false;
     }
 
-    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED);
+    // Use SDL_RENDERER_PRESENTVSYNC to enable V-Sync
+    *renderer = SDL_CreateRenderer(*window, 2, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     // if you have high resolution monitor 2K or 4K then scale
     SDL_RenderSetScale(*renderer, SCALE, SCALE);
 

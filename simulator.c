@@ -14,6 +14,7 @@
 #define PRIORITY_THRESHOLD 10
 #define PRIORITY_RESET_THRESHOLD 5
 #define VEHICLE_PASS_TIME 1
+#define NUM_SUB_LANES 3 // Number of sub-lanes per main lane
 
 // Lane file names
 const char *LANE_FILES[] = {"lanea.txt", "laneb.txt", "lanec.txt", "laned.txt"};
@@ -32,6 +33,9 @@ typedef struct VehicleQueue
     Vehicle *front;
     Vehicle *rear;
     int count;
+    Vehicle *front[NUM_SUB_LANES]; // Front of queue for each sub-lane
+    Vehicle *rear[NUM_SUB_LANES];  // Rear of queue for each sub-lane
+    int count[NUM_SUB_LANES];      // Count of vehicles in each sub-lane
 } VehicleQueue;
 
 // SharedData structure
@@ -118,37 +122,42 @@ int main()
     return 0;
 }
 
-// Function to enqueue vehicles
-void enqueue(VehicleQueue *queue, const char *vehicleId)
+// Enqueue a vehicle into the specified sub-lane
+void enqueue(VehicleQueue *queue, const char *vehicleId, int subLane)
 {
     Vehicle *newVehicle = (Vehicle *)malloc(sizeof(Vehicle));
     strcpy(newVehicle->id, vehicleId);
     newVehicle->next = NULL;
 
-    if (queue->rear == NULL)
+    if (queue->rear[subLane] == NULL)
     {
-        queue->front = newVehicle;
-        queue->rear = newVehicle;
+        queue->front[subLane] = newVehicle;
+        queue->rear[subLane] = newVehicle;
     }
     else
     {
-        queue->rear->next = newVehicle;
-        queue->rear = newVehicle;
+        queue->rear[subLane]->next = newVehicle;
+        queue->rear[subLane] = newVehicle;
     }
 
-    queue->count++;
+    queue->count[subLane]++;
 }
 
-// Function to dequeue vehicles
-Vehicle *dequeue(VehicleQueue *queue)
+// Dequeue a vehicle from the specified sub-lane
+Vehicle *dequeue(VehicleQueue *queue, int subLane)
 {
-    if (queue->front == NULL)
+    if (queue->front[subLane] == NULL)
         return NULL;
-    Vehicle *temp = queue->front;
-    queue->front = queue->front->next;
-    if (queue->front == NULL)
-        queue->rear = NULL;
-    queue->count--;
+
+    Vehicle *temp = queue->front[subLane];
+    queue->front[subLane] = queue->front[subLane]->next;
+
+    if (queue->front[subLane] == NULL)
+    {
+        queue->rear[subLane] = NULL;
+    }
+
+    queue->count[subLane]--;
     return temp;
 }
 
@@ -240,7 +249,7 @@ void drawVehiclesInLane(SDL_Renderer *renderer, VehicleQueue *queue, int laneInd
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Blue for vehicles
 
     Vehicle *current = queue->front;
-    int vehicleOffset = 30; // Spacing between vehicles
+    int vehicleOffset = 20; // Spacing between vehicles
 
     // Loop through the vehicles in the lane and draw them
     for (int i = 0; current != NULL; i++, current = current->next)
@@ -255,12 +264,12 @@ void drawVehiclesInLane(SDL_Renderer *renderer, VehicleQueue *queue, int laneInd
             x = WINDOW_WIDTH / 2 + ROAD_WIDTH / 4;
             y = WINDOW_HEIGHT - 50 - i * vehicleOffset;
             break;
-        case 2:                                        // Lane C (Right -> Left)
-            x = WINDOW_WIDTH - 50 - i * vehicleOffset; // Moving right to left
+        case 2: // Lane C (Right -> Left)
+            x = WINDOW_WIDTH - 50 - i * vehicleOffset;
             y = WINDOW_HEIGHT / 2 + ROAD_WIDTH / 4;
             break;
-        case 3:                         // Lane D (Left -> Right)
-            x = 50 + i * vehicleOffset; // Moving left to right
+        case 3: // Lane D (Left -> Right)
+            x = 50 + i * vehicleOffset;
             y = WINDOW_HEIGHT / 2 - ROAD_WIDTH / 4;
             break;
         default:

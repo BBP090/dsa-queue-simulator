@@ -1,56 +1,30 @@
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <unistd.h> // For sleep()
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <string.h>
 
-#define FILENAME "vehicles.data"
+int main()
+{
+    int sockfd;
+    struct sockaddr_in servaddr;
+    char buffer[1024];
 
-// Function to generate a random vehicle number
-void generateVehicleNumber(char* buffer) {
-    buffer[0] = 'A' + rand() % 26;
-    buffer[1] = 'A' + rand() % 26;
-    buffer[2] = '0' + rand() % 10;
-    buffer[3] = 'A' + rand() % 26;
-    buffer[4] = 'A' + rand() % 26;
-    buffer[5] = '0' + rand() % 10;
-    buffer[6] = '0' + rand() % 10;
-    buffer[7] = '0' + rand() % 10;
-    buffer[8] = '\0';
-}
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(8080);
+    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-// Function to generate a random lane
-char generateLane() {
-    char lanes[] = {'A', 'B', 'C', 'D'};
-    return lanes[rand() % 4];
-}
+    connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
 
-int main() {
-    FILE* file = fopen(FILENAME, "a");
-    if (!file) {
-        perror("Error opening file");
-        return 1;
+    while (1)
+    {
+        snprintf(buffer, sizeof(buffer), "Vehicle%d", rand() % 100);
+        send(sockfd, buffer, strlen(buffer), 0);
+        printf("Sent: %s\n", buffer);
+        sleep(1);
     }
 
-    srand(time(NULL)); // Initialize random seed
-
-    while (1) {
-        char vehicle[9];
-        generateVehicleNumber(vehicle);
-        char lane = generateLane();
-
-        // Write to file
-        fprintf(file, "%s:%c\n", vehicle, lane);
-        fflush(file); // Ensure data is written immediately
-
-        printf("Generated: %s:%c\n", vehicle, lane); // Print to console
-
-        sleep(1); // Wait 1 second before generating next entry
-    }
-
-    fclose(file);
+    close(sockfd);
     return 0;
 }
-
-// traffic_generator.c
-// Displaying traffic_generator.c.

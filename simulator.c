@@ -30,9 +30,6 @@ typedef struct Vehicle
 // Queue structure
 typedef struct VehicleQueue
 {
-    Vehicle *front;
-    Vehicle *rear;
-    int count;
     Vehicle *front[NUM_SUB_LANES]; // Front of queue for each sub-lane
     Vehicle *rear[NUM_SUB_LANES];  // Rear of queue for each sub-lane
     int count[NUM_SUB_LANES];      // Count of vehicles in each sub-lane
@@ -48,8 +45,8 @@ typedef struct
 } SharedData;
 
 // Function declarations
-void enqueue(VehicleQueue *queue, const char *vehicleId);
-Vehicle *dequeue(VehicleQueue *queue);
+void enqueue(VehicleQueue *queue, const char *vehicleId, int subLane);
+Vehicle *dequeue(VehicleQueue *queue, int subLane);
 void *processQueues(void *arg);
 void *monitorLaneFiles(void *arg);
 void drawRoadsAndLights(SDL_Renderer *renderer, SharedData *sharedData, TTF_Font *font);
@@ -75,13 +72,21 @@ int main()
 
     // Initialize shared data and vehicle queues
     SharedData sharedData = {0};
+
+    // Initialize lane queues with three sub-lanes per main lane (A, B, C, D)
     for (int i = 0; i < 4; i++)
     {
         sharedData.laneQueues[i] = (VehicleQueue *)malloc(sizeof(VehicleQueue));
-        sharedData.laneQueues[i]->front = NULL;
-        sharedData.laneQueues[i]->rear = NULL;
-        sharedData.laneQueues[i]->count = 0;
+
+        // Initialize each sub-lane's front, rear, and count to NULL and 0 respectively
+        for (int j = 0; j < NUM_SUB_LANES; j++)
+        {
+            sharedData.laneQueues[i]->front[j] = NULL;
+            sharedData.laneQueues[i]->rear[j] = NULL;
+            sharedData.laneQueues[i]->count[j] = 0;
+        }
     }
+
     sharedData.currentServingLane = -1;
     sharedData.timeLeft = 0;
     sharedData.priorityMode = false;
@@ -180,7 +185,8 @@ void *monitorLaneFiles(void *arg)
                 char *vehicleId = strtok(line, ":");
                 if (vehicleId)
                 {
-                    enqueue(sharedData->laneQueues[i], vehicleId);
+                    int subLane = rand() % NUM_SUB_LANES; // Random sub-lane assignment
+                    enqueue(sharedData->laneQueues[i], vehicleId, subLane);
                 }
             }
 

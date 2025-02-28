@@ -40,7 +40,7 @@ After you install all the required materials, build the project using the comman
 
     - If you do not have homebrew installed already, do so using the command below:
         >`curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh`
-<br>
+
     - Then compile the simulator in a new terminal:
         >`gcc gcc simulator.c -o simulator -Wall -Wextra -I./include -I/opt homebrew/include $(sdl2-config --cflags --libs) -lSDL2 -lSDL2_ttf -lpthread && ./simulator`
 <br>

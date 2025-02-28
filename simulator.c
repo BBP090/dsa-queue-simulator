@@ -14,7 +14,7 @@
 #define PRIORITY_THRESHOLD 10
 #define PRIORITY_RESET_THRESHOLD 5
 #define VEHICLE_PASS_TIME 1
-#define NUM_SUB_LANES 3 // Number of sub-lanes per main lane
+#define NUM_SUB_LANES 3 // 3 sub-lanes per main lane
 
 // Lane file names
 const char *LANE_FILES[] = {"lanea.txt", "laneb.txt", "lanec.txt", "laned.txt"};
@@ -27,18 +27,18 @@ typedef struct Vehicle
     struct Vehicle *next;
 } Vehicle;
 
-// Queue structure
+// Queue structure with 3 sub-lanes per main lane
 typedef struct VehicleQueue
 {
-    Vehicle *front[NUM_SUB_LANES]; // Front of queue for each sub-lane
-    Vehicle *rear[NUM_SUB_LANES];  // Rear of queue for each sub-lane
-    int count[NUM_SUB_LANES];      // Count of vehicles in each sub-lane
+    Vehicle *front[NUM_SUB_LANES];
+    Vehicle *rear[NUM_SUB_LANES];
+    int count[NUM_SUB_LANES];
 } VehicleQueue;
 
 // SharedData structure
 typedef struct
 {
-    VehicleQueue *laneQueues[4]; // A, B, C, D
+    VehicleQueue *laneQueues[4]; // A, B, C, D with sub-lanes
     int currentServingLane;
     int timeLeft;
     bool priorityMode;
@@ -52,6 +52,7 @@ void *monitorLaneFiles(void *arg);
 void drawRoadsAndLights(SDL_Renderer *renderer, SharedData *sharedData, TTF_Font *font);
 void drawLight(SDL_Renderer *renderer, int laneIndex, bool isRed);
 void displayText(SDL_Renderer *renderer, TTF_Font *font, const char *text, int x, int y);
+void drawVehiclesInLane(SDL_Renderer *renderer, VehicleQueue *queue, int laneIndex);
 
 int main()
 {
@@ -72,13 +73,9 @@ int main()
 
     // Initialize shared data and vehicle queues
     SharedData sharedData = {0};
-
-    // Initialize lane queues with three sub-lanes per main lane (A, B, C, D)
     for (int i = 0; i < 4; i++)
     {
         sharedData.laneQueues[i] = (VehicleQueue *)malloc(sizeof(VehicleQueue));
-
-        // Initialize each sub-lane's front, rear, and count to NULL and 0 respectively
         for (int j = 0; j < NUM_SUB_LANES; j++)
         {
             sharedData.laneQueues[i]->front[j] = NULL;
@@ -86,7 +83,6 @@ int main()
             sharedData.laneQueues[i]->count[j] = 0;
         }
     }
-
     sharedData.currentServingLane = -1;
     sharedData.timeLeft = 0;
     sharedData.priorityMode = false;
@@ -127,7 +123,7 @@ int main()
     return 0;
 }
 
-// Enqueue a vehicle into the specified sub-lane
+// Function to enqueue vehicles into a specific sub-lane
 void enqueue(VehicleQueue *queue, const char *vehicleId, int subLane)
 {
     Vehicle *newVehicle = (Vehicle *)malloc(sizeof(Vehicle));
@@ -148,25 +144,20 @@ void enqueue(VehicleQueue *queue, const char *vehicleId, int subLane)
     queue->count[subLane]++;
 }
 
-// Dequeue a vehicle from the specified sub-lane
+// Function to dequeue vehicles from a specific sub-lane
 Vehicle *dequeue(VehicleQueue *queue, int subLane)
 {
     if (queue->front[subLane] == NULL)
         return NULL;
-
     Vehicle *temp = queue->front[subLane];
     queue->front[subLane] = queue->front[subLane]->next;
-
     if (queue->front[subLane] == NULL)
-    {
         queue->rear[subLane] = NULL;
-    }
-
     queue->count[subLane]--;
     return temp;
 }
 
-// Function to monitor lane files
+// Function to monitor lane files and enqueue vehicles to random sub-lanes
 void *monitorLaneFiles(void *arg)
 {
     SharedData *sharedData = (SharedData *)arg;
@@ -185,7 +176,7 @@ void *monitorLaneFiles(void *arg)
                 char *vehicleId = strtok(line, ":");
                 if (vehicleId)
                 {
-                    int subLane = rand() % NUM_SUB_LANES; // Random sub-lane assignment
+                    int subLane = rand() % NUM_SUB_LANES; // Randomly assign to a sub-lane
                     enqueue(sharedData->laneQueues[i], vehicleId, subLane);
                 }
             }
@@ -208,16 +199,19 @@ void *processQueues(void *arg)
         if (sharedData->priorityMode)
         {
             servedLane = 0; // Always serve lane A in priority mode
-            sharedData->priorityMode = sharedData->laneQueues[0]->count >= PRIORITY_RESET_THRESHOLD;
+            sharedData->priorityMode = sharedData->laneQueues[0]->count[0] >= PRIORITY_RESET_THRESHOLD;
         }
         else
         {
             for (int i = 0; i < 4; i++)
             {
-                if (sharedData->laneQueues[i]->count > 0)
+                for (int j = 0; j < NUM_SUB_LANES; j++)
                 {
-                    servedLane = i;
-                    break;
+                    if (sharedData->laneQueues[i]->count[j] > 0)
+                    {
+                        servedLane = i;
+                        break;
+                    }
                 }
             }
         }
@@ -225,10 +219,11 @@ void *processQueues(void *arg)
         if (servedLane != -1)
         {
             sharedData->currentServingLane = servedLane;
-            Vehicle *vehicle = dequeue(sharedData->laneQueues[servedLane]);
+            int subLane = rand() % NUM_SUB_LANES;
+            Vehicle *vehicle = dequeue(sharedData->laneQueues[servedLane], subLane);
             if (vehicle)
             {
-                printf("Serving vehicle %s from lane %s\n", vehicle->id, LANE_NAMES[servedLane]);
+                printf("Serving vehicle %s from lane %s sub-lane %d\n", vehicle->id, LANE_NAMES[servedLane], subLane);
                 free(vehicle);
                 sleep(VEHICLE_PASS_TIME);
             }
@@ -238,7 +233,7 @@ void *processQueues(void *arg)
             sharedData->currentServingLane = -1;
         }
 
-        if (sharedData->laneQueues[0]->count >= PRIORITY_THRESHOLD)
+        if (sharedData->laneQueues[0]->count[0] >= PRIORITY_THRESHOLD)
         {
             sharedData->priorityMode = true;
         }
@@ -247,6 +242,7 @@ void *processQueues(void *arg)
     }
 }
 
+// Function to draw vehicles in each lane with sub-lanes
 void drawVehiclesInLane(SDL_Renderer *renderer, VehicleQueue *queue, int laneIndex)
 {
     int x, y;
@@ -254,37 +250,42 @@ void drawVehiclesInLane(SDL_Renderer *renderer, VehicleQueue *queue, int laneInd
     // Set vehicle color
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Blue for vehicles
 
-    Vehicle *current = queue->front;
-    int vehicleOffset = 20; // Spacing between vehicles
+    int vehicleOffset = 30; // Spacing between vehicles
+    int subLaneOffset = 40; // Sub-lane offset (adjust for better separation)
 
-    // Loop through the vehicles in the lane and draw them
-    for (int i = 0; current != NULL; i++, current = current->next)
+    // Loop through the vehicles in each sub-lane and draw them
+    for (int subLane = 0; subLane < NUM_SUB_LANES; subLane++)
     {
-        switch (laneIndex)
-        {
-        case 0: // Lane A (Top -> Bottom)
-            x = WINDOW_WIDTH / 2 - ROAD_WIDTH / 4;
-            y = 50 + i * vehicleOffset;
-            break;
-        case 1: // Lane B (Bottom -> Top)
-            x = WINDOW_WIDTH / 2 + ROAD_WIDTH / 4;
-            y = WINDOW_HEIGHT - 50 - i * vehicleOffset;
-            break;
-        case 2: // Lane C (Right -> Left)
-            x = WINDOW_WIDTH - 50 - i * vehicleOffset;
-            y = WINDOW_HEIGHT / 2 + ROAD_WIDTH / 4;
-            break;
-        case 3: // Lane D (Left -> Right)
-            x = 50 + i * vehicleOffset;
-            y = WINDOW_HEIGHT / 2 - ROAD_WIDTH / 4;
-            break;
-        default:
-            return;
-        }
+        Vehicle *current = queue->front[subLane];
 
-        // Draw a rectangle representing the vehicle
-        SDL_Rect vehicleRect = {x, y, 20, 10}; // Each vehicle is a small rectangle
-        SDL_RenderFillRect(renderer, &vehicleRect);
+        for (int i = 0; current != NULL; i++, current = current->next)
+        {
+            switch (laneIndex)
+            {
+            case 0: // Lane A (Top -> Bottom)
+                x = WINDOW_WIDTH / 2 - ROAD_WIDTH / 2 + subLane * subLaneOffset + 20;
+                y = 50 + i * vehicleOffset;
+                break;
+            case 1: // Lane B (Bottom -> Top)
+                x = WINDOW_WIDTH / 2 - ROAD_WIDTH / 2 + subLane * subLaneOffset + 20;
+                y = WINDOW_HEIGHT - 50 - i * vehicleOffset;
+                break;
+            case 2: // Lane C (Right -> Left)
+                x = WINDOW_WIDTH - 50 - i * vehicleOffset;
+                y = WINDOW_HEIGHT / 2 - ROAD_WIDTH / 2 + subLane * subLaneOffset + 20;
+                break;
+            case 3: // Lane D (Left -> Right)
+                x = 50 + i * vehicleOffset;
+                y = WINDOW_HEIGHT / 2 - ROAD_WIDTH / 2 + subLane * subLaneOffset + 20;
+                break;
+            default:
+                return;
+            }
+
+            // Draw a rectangle representing the vehicle
+            SDL_Rect vehicleRect = {x, y, 20, 10}; // Each vehicle is a small rectangle
+            SDL_RenderFillRect(renderer, &vehicleRect);
+        }
     }
 }
 

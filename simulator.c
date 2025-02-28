@@ -60,7 +60,8 @@ int main()
     SharedData sharedData = {{0, 0, 0, 0}, {0, 0, 0, 0}}; // All lights red
 
     TTF_Font *font = TTF_OpenFont(MAIN_FONT, 24);
-    if (!font) {
+    if (!font)
+    {
         SDL_Log("Failed to load font: %s", TTF_GetError());
     }
 
@@ -188,6 +189,18 @@ void drawArrwow(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, int x3, 
         sx1 += dx3;
         sx2 += dx2;
     }
+}
+
+void drawVehiclesInLane(SDL_Renderer *renderer, VehicleQueue *queue, int laneIndex)
+{
+    int x, y;
+
+    // Set vehicle color
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Blue for vehicles
+
+    Vehicle *current = queue->front;
+    int vehicleOffset = 30; // Spacing between vehicles
+
 }
 
 void drawLight(SDL_Renderer *renderer, int lane, bool isRed)
